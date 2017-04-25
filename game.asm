@@ -19,7 +19,8 @@ la $s0, board
 la $s1, players
 li $s2, -1
 jal PRINTBOARD
-PLAY: 
+PLAY:
+#PLAYER 1
 addi $s2, $s2, 1
 or $a0, $0, $s0		#a0 = board
 la $a1, USERIN	#a1 = userin(board)
@@ -27,7 +28,17 @@ or $a2, $0, $s2			#a2 = turn
 jal DROPPIECE
 move $a0, $v0		#a0 = last cel played in
 jal CHECKWIN		
+blt $v0, 1, FINISH
+#PLAYER 2
+addi $s2, $s2, 1
+or $a0, $0, $s0		#a0 = board
+la $a1, AIMOVE	#a1 = userin(board)
+or $a2, $0, $s2			#a2 = turn
+jal DROPPIECE
+move $a0, $v0		#a0 = last cel played in
+jal CHECKWIN		
 bge $v0, 1, PLAY
+FINISH:
 jal FINALSCREEN		#takes in win status 
 li $v0, 4
 la $a0, again
@@ -393,6 +404,34 @@ FOUND:
 li $v0, 0 # loads a win code into response register
 jr $ra
 
+#a0, a1 => move addr, move value
+CANWINUP:
+move $t0, $a1
+li $t1, 1 # count = 1
+move $t2, $a0
+DOWNLOOP: # checks down for a win
+subi $t2, $t2 1
+lb $t3 ($t2)
+bne $t0, $t3, DOWNEND
+add $t1, $t1, 1
+beq $t1, 4, CAN # string of 4 found
+b DOWNLOOP
+DOWNEND:
+move $t2, $a0
+UPLOOP: # checks down for a win
+addi $t2, $t2 1
+lb $t3 ($t2)
+bne $t3, '_', UPEND
+add $t1, $t1, 1
+beq $t1, 4, CAN # string of 4 found
+b UPLOOP
+UPEND:
+li $v0, 1 # loads a NOT code into response register
+jr $ra
+CAN:
+li $v0, 0 # loads a CAN code into response register
+jr $ra
+
 #a0, a1 => AI piece value, opponent piece value
 #v0 become column selected
 AIMOVE:
@@ -408,19 +447,27 @@ sw $ra, 28($sp)
 li $s0, -1 # Chosen column = -1
 li $s1, -4 # Minimum code = -4
 li $s2, 0 # Current column = 0
-move $s4, $a0 #AI piece value
-move $s5, $a1 #Opponent piece value
+li $s4, 'B' #AI piece value
+li $s5, 'R' #Opponent piece value
 
 AILOOP:
 li $s3, -4 # Current code = -4
 la $a0, board # prepare to getfree
 move $a1, $s2
 jal GETFREE
-beq $v0, -1 AILOOPCLEANUP
+beq $v1, -1 AILOOPCLEANUP
 move $s6, $v0
 li $s3, 0 # default code 0
+CANWINHERE:
+move $a0, $s6 # move = spot
+move $a1, $s4 # piece = AI
+li $a2, 4 # width = 4
+li $a3, 0 # padding = 0
+jal CANWINUP
+bnez $v0, MEUPWIN
+li $s3, 1
 MEUPWIN:
-addi $a0, $s6, 1 # move += 1
+addi $a0, $s6, 1 # move = spot + 1
 move $a1, $s4 # piece = AI
 li $a2, 4 # width = 4
 li $a3, 0 # padding = 0
@@ -442,7 +489,7 @@ li $a2, 3 # width = 3
 li $a3, 2 # padding = 2
 jal CHECKMOVE
 bnez $v0, MEOTHREE
-li $s3, 1
+li $s3, 2
 MEOTHREE:
 move $a0, $s6 # move = spot
 move $a1, $s4 # piece = AI
@@ -450,7 +497,7 @@ li $a2, 3 # width = 3
 li $a3, 2 # padding = 2
 jal CHECKMOVE
 bnez $v0, YOUUPWIN
-li $s3, 2
+li $s3, 3
 YOUUPWIN:
 addi $a0, $s6, 1 # move = spot + 1
 move $a1, $s5 # piece = Opponent
@@ -466,14 +513,16 @@ li $a2, 4 # width = 4
 li $a3, 0 # padding = 0
 jal CHECKMOVE
 bnez $v0, MEWIN
-li $s3, 3
+li $s3, 4
 MEWIN:
 move $a0, $s6 # move = spot
 move $a1, $s4 # piece = AI
 li $a2, 4 # width = 4
 li $a3, 0 # padding = 0
 jal CHECKMOVE
-beqz $v0, AILOOPEND
+bnez $v0, AILOOPCLEANUP
+move $s0, $s2
+b AILOOPEND
 AILOOPCLEANUP:
 ble $s3, $s1 UPDATESKIP
 move $s1, $s3
