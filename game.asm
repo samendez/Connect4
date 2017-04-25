@@ -472,8 +472,24 @@ move $a1, $s4 # piece = AI
 li $a2, 4 # width = 4
 li $a3, 0 # padding = 0
 jal CHECKMOVE
-bnez $v0, YOUUPOTHREE
+bnez $v0, YOUUPCTHREE
 li $s3, -1
+YOUUPCTHREE:
+addi $a0, $s6, 1 # move = spot + 1
+move $a1, $s5 # piece = Opponent
+li $a2, 3 # width = 3
+li $a3, 1 # padding = 1
+jal CHECKMOVE
+bnez $v0, MECTHREE
+li $s3, -1
+MECTHREE:
+move $a0, $s6 # move = spot
+move $a1, $s4 # piece = AI
+li $a2, 3 # width = 3
+li $a3, 1 # padding = 1
+jal CHECKMOVE
+bnez $v0, YOUUPOTHREE
+li $s3, 1
 YOUUPOTHREE:
 addi $a0, $s6, 1 # move = spot + 1
 move $a1, $s5 # piece = Opponent
