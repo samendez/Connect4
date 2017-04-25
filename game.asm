@@ -1,43 +1,49 @@
 .data 
-len:     .byte 16
-board:   .word 0,0,0,0,0,0,0
-free: 	 .word 0,0,0,0,0,0,0
-players: .byte  '_','R', 'B'
-bar:  	 .asciiz "|"
-endl: 	 .asciiz "\n"
-droperr: .asciiz "Sorry, that was an invalid move, try again\n"
-prompt:  .asciiz "Player  place tile: "
-again:	 .asciiz "Play again (Y/n): "
-bye:	 .asciiz "\nThanks for playing!"
+len:     	.byte 16
+board:   	.word 0,0,0,0,0,0,0
+free: 	 	.word 0,0,0,0,0,0,0
+players: 	.byte  '_','R', 'B'
+bar:  		.asciiz "|"
+endl: 	 	.asciiz "\n"
+err: 		.asciiz "Sorry, that was an invalid , try again\n"
+prompt:  	.asciiz "Player  place tile: "
+again:	 	.asciiz "Play again (Y/n): "
+bye:	 	.asciiz "\nThanks for playing!" 
+gamemode:	.asciiz "Please select a mode:\n\ta) User vs User\n\tb)User vs ai\n"
+mode:		.word 0,0				#holds input types ie. user,user  user,ai
 .text
 GAME:
-la $a0, endl
-li $v0, 4
-syscall
+la $t0, mode
+la $s6, USERIN
+la $s7, AIMOVE
+sw $s6, ($t0)
+sw $s6, 4($t0)
+jal GETMODE
+la $s6, mode
 jal INIT
 la $s0, board
 la $s1, players
 li $s2, -1
 jal PRINTBOARD
+
 PLAY:
-#PLAYER 1
+
 addi $s2, $s2, 1
+li $t0, 2
+divu $s2, $t0
+mfhi $t0
+mul $t0, $t0, 4
+add $t0, $t0, $s6
 or $a0, $0, $s0		#a0 = board
-la $a1, USERIN	#a1 = userin(board)
+la $a1, ($t0)		#a1 = userin(board)
+lw $a1, ($a1)
 or $a2, $0, $s2			#a2 = turn
 jal DROPPIECE
 move $a0, $v0		#a0 = last cel played in
-jal CHECKWIN		
+jal CHECKWIN
+beq $v0, 1, PLAY
 blt $v0, 1, FINISH
-#PLAYER 2
-addi $s2, $s2, 1
-or $a0, $0, $s0		#a0 = board
-la $a1, AIMOVE	#a1 = userin(board)
-or $a2, $0, $s2			#a2 = turn
-jal DROPPIECE
-move $a0, $v0		#a0 = last cel played in
-jal CHECKWIN		
-bge $v0, 1, PLAY
+
 FINISH:
 jal FINALSCREEN		#takes in win status 
 li $v0, 4
@@ -53,14 +59,36 @@ syscall
 li $v0, 10
 syscall
 
-#gameloop while !win
-# print board
-# print "Black/Red turn"
-# take column to play in
-# check win
-#exit loop
-#display win message
-#replay?
+
+GETMODE:
+la $a0, gamemode
+li $v0, 4
+syscall
+la $t0, mode
+addi $sp, $sp, -8
+sw $ra, ($sp)
+sw $t0, 4($sp)
+jal USERIN
+lw $ra, ($sp)
+lw $t0, 4($sp)
+addi $sp, $sp, 8
+addi $v0, $v0, 0x00000030
+blt $v0, 'a', MODEERR
+bge $v0, 'c', MODEERR
+beq $v0, 'a', ENDMODE
+bge $v0, 'b', UVAI
+UVAI:
+sw $s7, 4($t0)
+bge $v0, 'b', ENDMODE
+AIVAI:
+sw $s6, ($t0)
+ENDMODE:
+jr $ra
+MODEERR:
+la $a0, err
+li $v0, 4
+syscall
+j GETMODE
 
 INIT:
 la $t0, board
@@ -188,7 +216,7 @@ jr $ra
 DROPERR:
 addi $sp, $sp, -4
 sw $a0, ($sp)
-la $a0, droperr
+la $a0, err
 li $v0, 4
 syscall
 lw $a0, ($sp)
@@ -588,8 +616,7 @@ la $a0, endl
 syscall
 move $v0, $t0
 jr $ra
-AI:
-jr $ra
+
 MEMCPY:
 lw $t0, ($a1)
 sw $t0, ($a0)
