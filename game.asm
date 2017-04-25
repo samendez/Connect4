@@ -9,8 +9,9 @@ err: 		.asciiz "Sorry, that was an invalid , try again\n"
 prompt:  	.asciiz "Player  place tile: "
 again:	 	.asciiz "Play again (Y/n): "
 bye:	 	.asciiz "\nThanks for playing!" 
-gamemode:	.asciiz "Please select a mode:\n\ta) User vs User\n\tb)User vs ai\n"
-mode:		.word 0,0				#holds input types ie. user,user  user,ai
+gamemode:	.asciiz "Please select a mode:\n\ta) User vs User\n\tb)User vs ai\n\tc)ai vs ai\n"
+mode:		.word 0,0				#holds input types ie. user,user  user,ai, ai 
+turn:		.asciiz "'s turn\n"
 .text
 GAME:
 la $t0, mode
@@ -74,14 +75,14 @@ lw $t0, 4($sp)
 addi $sp, $sp, 8
 addi $v0, $v0, 0x00000030
 blt $v0, 'a', MODEERR
-bge $v0, 'c', MODEERR
+bge $v0, 'd', MODEERR
 beq $v0, 'a', ENDMODE
 bge $v0, 'b', UVAI
 UVAI:
 sw $s7, 4($t0)
-bge $v0, 'b', ENDMODE
+beq $v0, 'b', ENDMODE
 AIVAI:
-sw $s6, ($t0)
+sw $s7, ($t0)
 ENDMODE:
 jr $ra
 MODEERR:
@@ -131,7 +132,7 @@ jr $ra
 #a0 => turn
 GETPLAYER:
 li $t0, 2
-div $a1, $t0
+div $a0, $t0
 mfhi $t1		  # t1 = turn % 2
 addi $t1, $t1, 1  # t1 in {1,2}
 la $t0, players   # t0 = player[0]
@@ -185,6 +186,20 @@ sw $a0, ($sp)
 sw $a1, 4($sp)
 sw $a2, 8($sp)
 sw $ra, 12($sp)
+move $a0, $a2
+jal GETPLAYER
+move $a0, $v0
+li $v0, 11
+syscall
+la $a0, turn
+li $v0, 4
+syscall
+lw $a0, ($sp)
+lw $a1, 4($sp)
+lw $a2, 8($sp)
+lw $ra, 12($sp)
+
+
 #loops input request until valid input is obtained
 INPUTLOOP:
 jalr $a1
@@ -206,9 +221,6 @@ sw $a0, 4($sp)
 move $a1, $a2	# input method is not needed anymore, a1 = turn
 jal FILLCELL
 jal PRINTBOARD
-la $a0, endl
-li $v0 , 4
-syscall
 lw $ra, ($sp)
 lw $v0, 4($sp)		#v0 contains location of drop
 addi $sp, $sp, 8
@@ -475,9 +487,9 @@ sw $ra, 28($sp)
 li $s0, -1 # Chosen column = -1
 li $s1, -1000 # Minimum code = -1000
 li $s2, 0 # Current column = 0
-li $s4, 'B' #AI piece value
-li $s5, 'R' #Opponent piece value
-
+jal GETPLAYER
+move $s4, $a0 #AI piece value
+move $s5, $a3 #Opponent piece value
 AILOOP:
 li $s3, -1000 # Current code = -1000
 la $a0, board # prepare to getfree
