@@ -393,6 +393,107 @@ FOUND:
 li $v0, 0 # loads a win code into response register
 jr $ra
 
+#a0, a1 => AI piece value, opponent piece value
+#v0 become column selected
+AIMOVE:
+subi $sp, $sp, 32
+sw $s0, 0($sp)
+sw $s1, 4($sp)
+sw $s2, 8($sp)
+sw $s3, 12($sp)
+sw $s4, 16($sp)
+sw $s5, 20($sp)
+sw $s6, 24($sp)
+sw $ra, 28($sp)
+li $s0, -1 # Chosen column = -1
+li $s1, -4 # Minimum code = -4
+li $s2, 0 # Current column = 0
+move $s4, $a0 #AI piece value
+move $s5, $a1 #Opponent piece value
+
+AILOOP:
+li $s3, -4 # Current code = -4
+la $a0, board # prepare to getfree
+move $a1, $s2
+jal GETFREE
+beq $v0, -1 AILOOPCLEANUP
+move $s6, $v0
+li $s3, 0 # default code 0
+MEUPWIN:
+addi $a0, $s6, 1 # move += 1
+move $a1, $s4 # piece = AI
+li $a2, 4 # width = 4
+li $a3, 0 # padding = 0
+jal CHECKMOVE
+bnez $v0, YOUUPOTHREE
+li $s3, -1
+YOUUPOTHREE:
+addi $a0, $s6, 1 # move = spot + 1
+move $a1, $s5 # piece = Opponent
+li $a2, 3 # width = 3
+li $a3, 2 # padding = 2
+jal CHECKMOVE
+bnez $v0, YOUOTHREE
+li $s3, -2
+YOUOTHREE:
+move $a0, $s6 # move = spot
+move $a1, $s5 # piece = Opponent
+li $a2, 3 # width = 3
+li $a3, 2 # padding = 2
+jal CHECKMOVE
+bnez $v0, MEOTHREE
+li $s3, 1
+MEOTHREE:
+move $a0, $s6 # move = spot
+move $a1, $s4 # piece = AI
+li $a2, 3 # width = 3
+li $a3, 2 # padding = 2
+jal CHECKMOVE
+bnez $v0, YOUUPWIN
+li $s3, 2
+YOUUPWIN:
+addi $a0, $s6, 1 # move = spot + 1
+move $a1, $s5 # piece = Opponent
+li $a2, 4 # width = 4
+li $a3, 0 # padding = 0
+jal CHECKMOVE
+bnez $v0, YOUWIN
+li $s3, -3
+YOUWIN:
+move $a0, $s6 # move = spot
+move $a1, $s5 # piece = Opponent
+li $a2, 4 # width = 4
+li $a3, 0 # padding = 0
+jal CHECKMOVE
+bnez $v0, MEWIN
+li $s3, 3
+MEWIN:
+move $a0, $s6 # move = spot
+move $a1, $s4 # piece = AI
+li $a2, 4 # width = 4
+li $a3, 0 # padding = 0
+jal CHECKMOVE
+beqz $v0, AILOOPEND
+AILOOPCLEANUP:
+ble $s3, $s1 UPDATESKIP
+move $s1, $s3
+move $s0, $s2
+UPDATESKIP:
+addi $s2, $s2, 1
+blt $s2, 7, AILOOP
+AILOOPEND:
+move $v0, $s0 # Select column
+lw $s0, 0($sp)
+lw $s1, 4($sp)
+lw $s2, 8($sp)
+lw $s3, 12($sp)
+lw $s4, 16($sp)
+lw $s5, 20($sp)
+lw $s6, 24($sp)
+lw $ra, 28($sp)
+addi $sp, $sp, 32
+jr $ra
+
 #a0 => board
 FINALSCREEN:
 jr $ra
