@@ -479,7 +479,7 @@ li $s4, 'B' #AI piece value
 li $s5, 'R' #Opponent piece value
 
 AILOOP:
-li $s3, -10 # Current code = -10
+li $s3, -1000 # Current code = -1000
 la $a0, board # prepare to getfree
 move $a1, $s2
 jal GETFREE
@@ -524,8 +524,16 @@ move $a1, $s5 # piece = Opponent
 li $a2, 3 # width = 3
 li $a3, 2 # padding = 2
 jal CHECKMOVE
-bnez $v0, MEUUCTHREE
+bnez $v0, YOUCTHREE
 addi $s3, $s3, -3
+YOUCTHREE:
+move $a0, $s6 # move = spot
+move $a1, $s5 # piece = Opponent
+li $a2, 3 # width = 3
+li $a3, 1 # padding = 1
+jal CHECKMOVE
+bnez $v0, MEUUCTHREE
+addi $s3, $s3, 2
 MEUUCTHREE:
 addi $a0, $s6, 2 # move = spot + 2
 move $a1, $s4 # piece = AI
