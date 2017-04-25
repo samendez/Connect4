@@ -221,37 +221,159 @@ PRINTEND:
 addi $sp, $sp, 16
 jr $ra
 
-#a0 => board, last cell played
-#v0 becomes 0 if win or board fill tie, 1 if not, current player assumed win
+#a0 => last cell played
+#v0 becomes 0 if win, 1 if not, 2 if board full tie current player assumed win
 CHECKWIN:
-lb $t0, ($a0)
-la $t7, board
-lw $t7, ($t7)  
+addi $sp, $sp, -4
+sw $ra ($sp)
+lb $a1, ($a0)
+li $a2, 4
+li $a3, 0
+jal CHECKMOVE
+lw $ra ($sp)
+addi $sp, $sp, 4
+beq $v0, 1, CHECKFULL
+li $v0, 0
+jr $ra
+CHECKFULL:
+lw $t7, board
+add $t7, $t7, 5 # Maximum Address
+sub $t0, $t7, 53 # Minimum legal address
+FULLLOOP: # Greatest loop name ever
+lb $t1, ($t7)
+beq $t1, '_', FAIL
+sub $t7, $t7, 8
+bge $t7, $t0, FULLLOOP
+li $v0, 0 # Load TIE code
+jr $ra
+FAIL:
+li $v0, 1 # load NOT FULL code
+jr $ra
+
+#a0, a1, a2, a3 => cell addr, cell value, move span, padding
+#v0 becomes 0 if valid, 1 if not
+CHECKMOVE:
+move $t0, $a1
+lw $t7, board
 add $t7, $t7, 5 # Maximum legal address
 li $t1, 1 # count = 1
+li $t5, 0 # padding count = 0
+move $t4, $a3
+subi $t4, $t4, 1 # padding amt - 1
 move $t2, $a0
-WHORELEFTLOOP: # checks to the left for a win
+HORLEFTLOOP: # checks to the left for a win
 add $t2, $t2 8
-bgt $t2, $t7, WHORELEFTEND # address OB
+bgt $t2, $t7, HORLEFTEND # address OB
 lb $t3 ($t2)
-bne $t0, $t3, WHORELEFTEND
+bne $t0, $t3, PADHORLEFT # not inputted val
 add $t1, $t1, 1
-beq $t1, 4, WIN # string of 4 found
-b WHORELEFTLOOP
-WHORELEFTEND:
+b HORLEFTLOOP
+PADHORLEFT:
+bne $t3, '_' HORLEFTEND # not padding
+addi $t5, $t5, 1
+bge $t5, $t4, HORLEFTEND # padded enough
+b HORLEFTLOOP
+HORLEFTEND:
+blt $t5, $t4, HORRIGHTEND
 move $t2, $a0
 sub $t7, $t7, 53 # Minimum legal address
-WHORERIGHTLOOP: # checks to the right for a win
+HORRIGHTLOOP: # checks to the right for a win
 sub $t2, $t2 8
-blt $t2, $t7, WHORERIGHTEND # address OB
+blt $t2, $t7, CHECKHORRIGHT # address OB
 lb $t3 ($t2)
-bne $t0, $t3, WHORERIGHTEND
+bne $t0, $t3, PADHORRIGHT
 add $t1, $t1, 1
-beq $t1, 4, WIN # string of 4 found
-b WHORERIGHTLOOP
-WHORERIGHTEND:
-la $t7, board
-lw $t7, ($t7)  
+b HORRIGHTLOOP
+PADHORRIGHT:
+bge $t5, $a3, CHECKHORRIGHT # padded enough
+bne $t3, '_' HORRIGHTEND # not padding
+addi $t5, $t5, 1
+b HORRIGHTLOOP
+CHECKHORRIGHT:
+blt $t5, $a3, HORRIGHTEND
+bge $t1, $a2, FOUND # string of 4 found
+HORRIGHTEND:
+#Check dl to ur
+lw $t7, board
+add $t7, $t7, 5 # Maximum legal address
+li $t1, 1 # count = 1
+li $t5, 0 # padding count = 0
+move $t4, $a3
+subi $t4, $t4, 1 # padding amt - 1
+move $t2, $a0
+DOWNLEFTLOOP: # checks to the left for a win
+add $t2, $t2 7
+bgt $t2, $t7, DOWNLEFTEND # address OB
+lb $t3 ($t2)
+bne $t0, $t3, PADDOWNLEFT # not inputted val
+add $t1, $t1, 1
+b DOWNLEFTLOOP
+PADDOWNLEFT:
+bne $t3, '_' DOWNLEFTEND # not padding
+addi $t5, $t5, 1
+bge $t5, $t4, DOWNLEFTEND # padded enough
+b DOWNLEFTLOOP
+DOWNLEFTEND:
+blt $t5, $t4, UPRIGHTEND
+move $t2, $a0
+sub $t7, $t7, 53 # Minimum legal address
+UPRIGHTLOOP: # checks to the right for a win
+sub $t2, $t2 7
+blt $t2, $t7, CHECKUPRIGHT # address OB
+lb $t3 ($t2)
+bne $t0, $t3, PADUPRIGHT
+add $t1, $t1, 1
+b UPRIGHTLOOP
+PADUPRIGHT:
+bge $t5, $a3, CHECKUPRIGHT # padded enough
+bne $t3, '_' UPRIGHTEND # not padding
+addi $t5, $t5, 1
+b UPRIGHTLOOP
+CHECKUPRIGHT:
+blt $t5, $a3, UPRIGHTEND
+bge $t1, $a2, FOUND # string of 4 found
+UPRIGHTEND:
+#Check ul to dr
+lw $t7, board
+add $t7, $t7, 5 # Maximum legal address
+li $t1, 1 # count = 1
+li $t5, 0 # padding count = 0
+move $t4, $a3
+subi $t4, $t4, 1 # padding amt - 1
+move $t2, $a0
+UPLEFTLOOP: # checks to the left for a win
+add $t2, $t2 9
+bgt $t2, $t7, UPLEFTEND # address OB
+lb $t3 ($t2)
+bne $t0, $t3, PADUPLEFT # not inputted val
+add $t1, $t1, 1
+b UPLEFTLOOP
+PADUPLEFT:
+bne $t3, '_' UPLEFTEND # not padding
+addi $t5, $t5, 1
+bge $t5, $t4, UPLEFTEND # padded enough
+b UPLEFTLOOP
+UPLEFTEND:
+blt $t5, $t4, DOWNRIGHTEND
+move $t2, $a0
+sub $t7, $t7, 53 # Minimum legal address
+DOWNRIGHTLOOP: # checks to the right for a win
+sub $t2, $t2 9
+blt $t2, $t7, CHECKDOWNRIGHT # address OB
+lb $t3 ($t2)
+bne $t0, $t3, PADDOWNRIGHT
+add $t1, $t1, 1
+b DOWNRIGHTLOOP
+PADDOWNRIGHT:
+bge $t5, $a3, CHECKDOWNRIGHT # padded enough
+bne $t3, '_' DOWNRIGHTEND # not padding
+addi $t5, $t5, 1
+b DOWNRIGHTLOOP
+CHECKDOWNRIGHT:
+blt $t5, $a3, DOWNRIGHTEND
+bge $t1, $a2, FOUND # string of 4 found
+DOWNRIGHTEND:
+lw $t7, board
 add $t7, $t7, 5 # Maximum legal address
 li $t1, 1 # count = 1
 move $t2, $a0
@@ -262,62 +384,12 @@ blt $t2, $t7, VERTDOWNEND # address OB
 lb $t3 ($t2)
 bne $t0, $t3, VERTDOWNEND
 add $t1, $t1, 1
-beq $t1, 4, WIN # string of 4 found
+beq $t1, 4, FOUND # string of 4 found
 b VERTDOWNLOOP
 VERTDOWNEND:
-la $t7, board
-lw $t7, ($t7) 
-add $t7, $t7, 5 # Maximum legal address
-li $t1, 1 # count = 1
-move $t2, $a0
-DOWNLEFTLOOP: # checks down left for a win
-add $t2, $t2 7
-bgt $t2, $t7, DOWNLEFTEND # address OB
-lb $t3 ($t2)
-bne $t0, $t3, DOWNLEFTEND
-add $t1, $t1, 1
-beq $t1, 4, WIN # string of 4 found
-b DOWNLEFTLOOP
-DOWNLEFTEND:
-move $t2, $a0
-sub $t7, $t7, 53 # Minimum legal address
-UPRIGHTLOOP: # checks up right for a win
-sub $t2, $t2 7
-blt $t2, $t7, UPRIGHTEND # address OB
-lb $t3 ($t2)
-bne $t0, $t3, UPRIGHTEND
-add $t1, $t1, 1
-beq $t1, 4, WIN # string of 4 found
-b UPRIGHTLOOP
-UPRIGHTEND:
-la $t7, board
-lw $t7, ($t7) 
-add $t7, $t7, 5 # Maximum legal address
-li $t1, 1 # count = 1
-move $t2, $a0
-UPLEFTLOOP: # checks up left for a win
-add $t2, $t2 9
-bgt $t2, $t7, UPLEFTEND # address OB
-lb $t3 ($t2)
-bne $t0, $t3, UPLEFTEND
-add $t1, $t1, 1
-beq $t1, 4, WIN # string of 4 found
-b UPLEFTLOOP
-UPLEFTEND:
-move $t2, $a0
-sub $t7, $t7, 53 # Minimum legal address
-DOWNRIGHTLOOP: # checks down right for a win
-sub $t2, $t2 9
-blt $t2, $t7, DOWNRIGHTEND # address OB
-lb $t3 ($t2)
-bne $t0, $t3, DOWNRIGHTEND
-add $t1, $t1, 1
-beq $t1, 4, WIN # string of 4 found
-b DOWNRIGHTLOOP
-DOWNRIGHTEND:
 li $v0, 1 # loads a not win code into response register
 jr $ra
-WIN:
+FOUND:
 li $v0, 0 # loads a win code into response register
 jr $ra
 
