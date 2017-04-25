@@ -445,7 +445,7 @@ sw $s5, 20($sp)
 sw $s6, 24($sp)
 sw $ra, 28($sp)
 li $s0, -1 # Chosen column = -1
-li $s1, -4 # Minimum code = -4
+li $s1, -10 # Minimum code = -10
 li $s2, 0 # Current column = 0
 li $s4, 'B' #AI piece value
 li $s5, 'R' #Opponent piece value
@@ -466,22 +466,22 @@ li $a3, 0 # padding = 0
 jal CANWINUP
 bnez $v0, MEUPWIN
 li $s3, 1
-MEUPWIN:
-addi $a0, $s6, 1 # move = spot + 1
-move $a1, $s4 # piece = AI
-li $a2, 4 # width = 4
-li $a3, 0 # padding = 0
-jal CHECKMOVE
-bnez $v0, YOUUPCTHREE
-li $s3, -1
 YOUUPCTHREE:
 addi $a0, $s6, 1 # move = spot + 1
 move $a1, $s5 # piece = Opponent
 li $a2, 3 # width = 3
 li $a3, 1 # padding = 1
 jal CHECKMOVE
-bnez $v0, MECTHREE
+bnez $v0, MEUPWIN
 li $s3, -1
+MEUPWIN:
+addi $a0, $s6, 1 # move = spot + 1
+move $a1, $s4 # piece = AI
+li $a2, 4 # width = 4
+li $a3, 0 # padding = 0
+jal CHECKMOVE
+bnez $v0, MECTHREE
+li $s3, -2
 MECTHREE:
 move $a0, $s6 # move = spot
 move $a1, $s4 # piece = AI
@@ -496,8 +496,24 @@ move $a1, $s5 # piece = Opponent
 li $a2, 3 # width = 3
 li $a3, 2 # padding = 2
 jal CHECKMOVE
+bnez $v0, MEUUCTHREE
+li $s3, -3
+MEUUCTHREE:
+addi $a0, $s6, 2 # move = spot + 2
+move $a1, $s4 # piece = AI
+li $a2, 3 # width = 3
+li $a3, 1 # padding = 1
+jal CHECKMOVE
+bnez $v0, MEUUWIN
+li $s3, 2
+MEUUWIN:
+addi $a0, $s6, 2 # move = spot + 2
+move $a1, $s4 # piece = AI
+li $a2, 4 # width = 4
+li $a3, 0 # padding = 0
+jal CHECKMOVE
 bnez $v0, YOUOTHREE
-li $s3, -2
+li $s3, 3
 YOUOTHREE:
 move $a0, $s6 # move = spot
 move $a1, $s5 # piece = Opponent
@@ -505,7 +521,7 @@ li $a2, 3 # width = 3
 li $a3, 2 # padding = 2
 jal CHECKMOVE
 bnez $v0, MEOTHREE
-li $s3, 2
+li $s3, 4
 MEOTHREE:
 move $a0, $s6 # move = spot
 move $a1, $s4 # piece = AI
@@ -513,7 +529,7 @@ li $a2, 3 # width = 3
 li $a3, 2 # padding = 2
 jal CHECKMOVE
 bnez $v0, YOUUPWIN
-li $s3, 3
+li $s3, 5
 YOUUPWIN:
 addi $a0, $s6, 1 # move = spot + 1
 move $a1, $s5 # piece = Opponent
@@ -521,7 +537,7 @@ li $a2, 4 # width = 4
 li $a3, 0 # padding = 0
 jal CHECKMOVE
 bnez $v0, YOUWIN
-li $s3, -3
+li $s3, -4
 YOUWIN:
 move $a0, $s6 # move = spot
 move $a1, $s5 # piece = Opponent
@@ -529,7 +545,7 @@ li $a2, 4 # width = 4
 li $a3, 0 # padding = 0
 jal CHECKMOVE
 bnez $v0, MEWIN
-li $s3, 4
+li $s3, 6
 MEWIN:
 move $a0, $s6 # move = spot
 move $a1, $s4 # piece = AI
