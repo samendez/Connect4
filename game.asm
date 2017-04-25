@@ -220,11 +220,107 @@ b COLLOOP
 PRINTEND:
 addi $sp, $sp, 16
 jr $ra
+
 #a0 => board, last cell played
-#v0 becomes 1 if win or board fill tie, 0 if not, current player assumed win
+#v0 becomes 0 if win or board fill tie, 1 if not, current player assumed win
 CHECKWIN:
-li $v0, 1
+lb $t0, ($a0)
+la $t7, board
+lw $t7, ($t7)  
+add $t7, $t7, 5 # Maximum legal address
+li $t1, 1 # count = 1
+move $t2, $a0
+WHORELEFTLOOP: # checks to the left for a win
+add $t2, $t2 8
+bgt $t2, $t7, WHORELEFTEND # address OB
+lb $t3 ($t2)
+bne $t0, $t3, WHORELEFTEND
+add $t1, $t1, 1
+beq $t1, 4, WIN # string of 4 found
+b WHORELEFTLOOP
+WHORELEFTEND:
+move $t2, $a0
+sub $t7, $t7, 53 # Minimum legal address
+WHORERIGHTLOOP: # checks to the right for a win
+sub $t2, $t2 8
+blt $t2, $t7, WHORERIGHTEND # address OB
+lb $t3 ($t2)
+bne $t0, $t3, WHORERIGHTEND
+add $t1, $t1, 1
+beq $t1, 4, WIN # string of 4 found
+b WHORERIGHTLOOP
+WHORERIGHTEND:
+la $t7, board
+lw $t7, ($t7)  
+add $t7, $t7, 5 # Maximum legal address
+li $t1, 1 # count = 1
+move $t2, $a0
+sub $t7, $t7, 53 # Minimum legal address
+VERTDOWNLOOP: # checks down for a win
+sub $t2, $t2 1
+blt $t2, $t7, VERTDOWNEND # address OB
+lb $t3 ($t2)
+bne $t0, $t3, VERTDOWNEND
+add $t1, $t1, 1
+beq $t1, 4, WIN # string of 4 found
+b VERTDOWNLOOP
+VERTDOWNEND:
+la $t7, board
+lw $t7, ($t7) 
+add $t7, $t7, 5 # Maximum legal address
+li $t1, 1 # count = 1
+move $t2, $a0
+DOWNLEFTLOOP: # checks down left for a win
+add $t2, $t2 7
+bgt $t2, $t7, DOWNLEFTEND # address OB
+lb $t3 ($t2)
+bne $t0, $t3, DOWNLEFTEND
+add $t1, $t1, 1
+beq $t1, 4, WIN # string of 4 found
+b DOWNLEFTLOOP
+DOWNLEFTEND:
+move $t2, $a0
+sub $t7, $t7, 53 # Minimum legal address
+UPRIGHTLOOP: # checks up right for a win
+sub $t2, $t2 7
+blt $t2, $t7, UPRIGHTEND # address OB
+lb $t3 ($t2)
+bne $t0, $t3, UPRIGHTEND
+add $t1, $t1, 1
+beq $t1, 4, WIN # string of 4 found
+b UPRIGHTLOOP
+UPRIGHTEND:
+la $t7, board
+lw $t7, ($t7) 
+add $t7, $t7, 5 # Maximum legal address
+li $t1, 1 # count = 1
+move $t2, $a0
+UPLEFTLOOP: # checks up left for a win
+add $t2, $t2 9
+bgt $t2, $t7, UPLEFTEND # address OB
+lb $t3 ($t2)
+bne $t0, $t3, UPLEFTEND
+add $t1, $t1, 1
+beq $t1, 4, WIN # string of 4 found
+b UPLEFTLOOP
+UPLEFTEND:
+move $t2, $a0
+sub $t7, $t7, 53 # Minimum legal address
+DOWNRIGHTLOOP: # checks down right for a win
+sub $t2, $t2 9
+blt $t2, $t7, DOWNRIGHTEND # address OB
+lb $t3 ($t2)
+bne $t0, $t3, DOWNRIGHTEND
+add $t1, $t1, 1
+beq $t1, 4, WIN # string of 4 found
+b DOWNRIGHTLOOP
+DOWNRIGHTEND:
+li $v0, 1 # loads a not win code into response register
 jr $ra
+WIN:
+li $v0, 0 # loads a win code into response register
+jr $ra
+
 #a0 => board
 FINALSCREEN:
 jr $ra
