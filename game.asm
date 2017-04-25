@@ -1,12 +1,19 @@
 .data 
-len: .byte 16
-board: .word 0,0,0,0,0,0,0
+len:     .byte 16
+board:   .word 0,0,0,0,0,0,0
+free: 	 .word 0,0,0,0,0,0,0
 players: .byte  '_','R', 'B'
-bar: .asciiz "|"
-endl: .asciiz "\n"
+bar:  	 .asciiz "|"
+endl: 	 .asciiz "\n"
 droperr: .asciiz "Sorry, that was an invalid move, try again\n"
-prompt: .asciiz "Player  place tile: "
+prompt:  .asciiz "Player  place tile: "
+again:	 .asciiz "Play again (Y/n): "
+bye:	 .asciiz "\nThanks for playing!"
 .text
+GAME:
+la $a0, endl
+li $v0, 4
+syscall
 jal INIT
 la $s0, board
 la $s1, players
@@ -22,6 +29,16 @@ move $a0, $v0		#a0 = last cel played in
 jal CHECKWIN		
 bge $v0, 1, PLAY
 jal FINALSCREEN		#takes in win status 
+li $v0, 4
+la $a0, again
+syscall
+li $v0, 12
+syscall
+beq $v0, 'Y', GAME
+beq $v0, 'y', GAME
+li $v0, 4
+la $a0, bye
+syscall
 li $v0, 10
 syscall
 
@@ -45,16 +62,23 @@ or $t4, $t4, $t5 # t4 = "__"
 or $t5, $t4, $0  # t5 = t4
 sll $t4, $t4, 16 # t4 = "__\0\0"
 or $t4, $t4, $t5 # t4 = "____"
+
 ILOOP:
 addi $sp, $sp, -8 	# add 6 cells/col * 1 bytes/cell + 2 null = 8 bytes
 la $t2, 0($sp)	 	# t2 =  &sp
 sw $t2, 0($t0)		# *board = &sp, board[i] -> *char
-sw $t4, ($sp)		# t4 = "____"
-sw $t4, 4($sp)		# 		 + "____" 
-sh $0, 6($sp)		# *board = "______\0\0"
+sd $t4, ($sp)
 addi $t0, $t0, 4   # next address in 2d board array
 subi $t1, $t1, 1
 bnez $t1, ILOOP
+addi $sp , $sp, -4
+sw $ra, ($sp)
+la $a0, free
+la $a1, board
+li $a2, 7
+jal MEMCPY
+lw $ra, ($sp)
+addi $sp, $sp, -4
 jr $ra
 
 #a0,a1,a2 => board, column, row
@@ -91,7 +115,7 @@ jr $ra
 #a0,a1 => board, column
 #finds free cell in column a1
 #returns address of the cell
-FINDFREE:
+GETFREE:
 li $a2, 0		#int i = 0
 addi $sp, $sp, -4
 sw $ra, ($sp)
@@ -99,12 +123,16 @@ jal GETCELL
 lw $ra, ($sp)
 addi $sp, $sp, 4
 move $t1, $v0	#t1 = top of column
+li $v1, -1
 FREELOOP:
+addi $v1, $v1, 1
 lb $t2, ($t1)
 beq $t2, '_', FINDEND	# if open space, return space addr
 addi $t1, $t1, 1
+
 bnez $t2, FREELOOP		# if not zero, continue
-li $t1, -1				# if zero and not openspace, return -1
+subi $t1, $t1, -1		# if zero and not openspace, return -1
+li $v1, -1
 FINDEND:
 move $v0, $t1
 jr $ra
@@ -121,14 +149,16 @@ sw $ra, 12($sp)
 #loops input request until valid input is obtained
 INPUTLOOP:
 jalr $a1
+bgtu $v0, 6, DROPERR
 lw $a0, ($sp)
 move $a1, $v0
-jal FINDFREE
+jal GETFREE
 lw $a0, ($sp)
 lw $a1, 4($sp)
 lw $a2, 8($sp)
 lw $ra, 12($sp)
-beq $v0, -1, DROPERR
+
+beq $v1, -1, DROPERR
 addi $sp, $sp, 16
 move $a0, $v0
 addi $sp, $sp, -8
@@ -145,6 +175,13 @@ lw $v0, 4($sp)		#v0 contains location of drop
 addi $sp, $sp, 8
 jr $ra
 DROPERR:
+addi $sp, $sp, -4
+sw $a0, ($sp)
+la $a0, droperr
+li $v0, 4
+syscall
+lw $a0, ($sp)
+addi $sp, $sp, 4
 j INPUTLOOP
 
 PRINTBOARD:
@@ -192,6 +229,22 @@ jr $ra
 FINALSCREEN:
 jr $ra
 USERIN:
-li $v0,5 
+li $v0,12 
 syscall
+subi $v0, $v0, 0x00000030
+move $t0, $v0
+li $v0,4
+la $a0, endl
+syscall
+move $v0, $t0
+jr $ra
+AI:
+jr $ra
+MEMCPY:
+lw $t0, ($a1)
+sw $t0, ($a0)
+addi $a0, $a0, 4
+addi $a1, $a1, 4
+subi $a2, $a2, 1
+bnez $a2, MEMCPY
 jr $ra
