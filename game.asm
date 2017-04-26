@@ -6,13 +6,13 @@ players: .byte  '_','R', 'B'
 bar:  	 .asciiz "|"
 endl: 	 .asciiz "\n"
 droperr: .asciiz "Sorry, that was an invalid move, try again\n"
-prompt:  .asciiz "Player  place tile: "
+prompt:  .asciiz "'s turn\n"
 again:	 .asciiz "Play again (Y/n): "
 bye:	 .asciiz "\nThanks for playing!"
 cplayer: .word 'R'
 oplayer: .word 'B'
 playerprompt:  .asciiz "How many human players will there be (0-2): "
-
+wins:		.asciiz " wins\n"
 .text
 GAME:
 la $a0, endl
@@ -201,6 +201,12 @@ sw $a0, ($sp)
 sw $a1, 4($sp)
 sw $a2, 8($sp)
 sw $ra, 12($sp)
+la $a0, cplayer
+li $v0, 4
+syscall
+la $a0, prompt
+syscall
+lw $a0, ($sp)
 #loops input request until valid input is obtained
 INPUTLOOP:
 jalr $a1
@@ -629,6 +635,11 @@ jr $ra
 
 #a0 => board
 FINALSCREEN:
+la $a0, cplayer
+li $v0, 4
+syscall
+la $a0, wins
+syscall
 jr $ra
 USERIN:
 li $v0,12 
@@ -640,8 +651,7 @@ la $a0, endl
 syscall
 move $v0, $t0
 jr $ra
-AI:
-jr $ra
+
 MEMCPY:
 lw $t0, ($a1)
 sw $t0, ($a0)
