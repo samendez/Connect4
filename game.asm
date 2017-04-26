@@ -9,6 +9,8 @@ droperr: .asciiz "Sorry, that was an invalid move, try again\n"
 prompt:  .asciiz "Player  place tile: "
 again:	 .asciiz "Play again (Y/n): "
 bye:	 .asciiz "\nThanks for playing!"
+playerprompt:  .asciiz "How many human players will there be (0-2): "
+
 .text
 GAME:
 la $a0, endl
@@ -18,12 +20,15 @@ jal INIT
 la $s0, board
 la $s1, players
 li $s2, -1
+jal INITPLAYERS
+move $s3, $v0
+move $s4, $v1
 jal PRINTBOARD
 PLAY:
 #PLAYER 1
 addi $s2, $s2, 1
 or $a0, $0, $s0		#a0 = board
-la $a1, USERIN	#a1 = userin(board)
+move $a1, $s3	#a1 = userin(board)
 or $a2, $0, $s2			#a2 = turn
 jal DROPPIECE
 move $a0, $v0		#a0 = last cel played in
@@ -32,7 +37,7 @@ blt $v0, 1, FINISH
 #PLAYER 2
 addi $s2, $s2, 1
 or $a0, $0, $s0		#a0 = board
-la $a1, AIMOVE	#a1 = userin(board)
+move $a1, $s4	#a1 = userin(board)
 or $a2, $0, $s2			#a2 = turn
 jal DROPPIECE
 move $a0, $v0		#a0 = last cel played in
@@ -61,6 +66,35 @@ syscall
 #exit loop
 #display win message
 #replay?
+
+#v0 becomes player1, v1 becomes player 2
+INITPLAYERS:
+la $a0, playerprompt
+li $v0, 4
+syscall
+la $a0, endl
+li $v0, 4
+syscall
+li $v0, 12
+syscall
+move $t0, $v0
+li $v0, 4
+syscall
+la $a0, endl
+beq $t0, '1', ONEPLAYER
+beq $t0, '2', TWOPLAYER
+bne $t0, '0' INITPLAYERS
+la $v0, AIMOVE
+la $v1, AIMOVE
+jr $ra
+ONEPLAYER:
+la $v0, USERIN
+la $v1, AIMOVE
+jr $ra
+TWOPLAYER:
+la $v0, USERIN
+la $v1, USERIN
+jr $ra
 
 INIT:
 la $t0, board
