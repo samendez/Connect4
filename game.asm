@@ -9,6 +9,8 @@ droperr: .asciiz "Sorry, that was an invalid move, try again\n"
 prompt:  .asciiz "Player  place tile: "
 again:	 .asciiz "Play again (Y/n): "
 bye:	 .asciiz "\nThanks for playing!"
+cplayer: .word 'R'
+oplayer: .word 'B'
 playerprompt:  .asciiz "How many human players will there be (0-2): "
 
 .text
@@ -26,6 +28,10 @@ move $s4, $v1
 jal PRINTBOARD
 PLAY:
 #PLAYER 1
+li $t0, 'R'
+sw $t0, cplayer
+li $t0, 'B'
+sw $t0, oplayer
 addi $s2, $s2, 1
 or $a0, $0, $s0		#a0 = board
 move $a1, $s3	#a1 = userin(board)
@@ -35,6 +41,10 @@ move $a0, $v0		#a0 = last cel played in
 jal CHECKWIN		
 blt $v0, 1, FINISH
 #PLAYER 2
+li $t0, 'B'
+sw $t0, cplayer
+li $t0, 'R'
+sw $t0, oplayer
 addi $s2, $s2, 1
 or $a0, $0, $s0		#a0 = board
 move $a1, $s4	#a1 = userin(board)
@@ -481,8 +491,8 @@ sw $ra, 28($sp)
 li $s0, -1 # Chosen column = -1
 li $s1, -1000 # Minimum code = -1000
 li $s2, 0 # Current column = 0
-li $s4, 'B' #AI piece value
-li $s5, 'R' #Opponent piece value
+lb $s4, cplayer #AI piece value
+lb $s5, oplayer #Opponent piece value
 
 AILOOP:
 li $s3, -1000 # Current code = -1000
